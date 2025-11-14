@@ -62,6 +62,45 @@ class SilentStrategy(VerbosityStrategy):
         return iterable
 
 
+class PrintStrategy(VerbosityStrategy):
+    """Use print statements for progress."""
+
+    def on_train_begin(self, num_epochs: int) -> None:
+        super().on_train_begin(num_epochs)
+        self.max_epoch_len = len(str(num_epochs))
+
+        print(f"Starting training for {self.num_epochs} epochs...")
+
+    def on_epoch_begin(self, epoch: int) -> None:
+        print(f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs}")
+
+    def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
+        if loss is None:
+            print(f"  Batch {batch_idx + 1}")
+        else:
+            print(f"  Batch {batch_idx + 1}, Loss: {loss:.4g}")
+
+    def on_epoch_end(self, epoch: int, avg_loss: float | None = None) -> None:
+        if avg_loss is None:
+            print(
+                f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed",
+            )
+        else:
+            print(
+                f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed"
+                f" - Average Loss: {avg_loss:.4g}",
+            )
+
+    def on_train_end(self) -> None:
+        print("Training completed!")
+
+    def wrap_epoch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+        return iterable
+
+    def wrap_batch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+        return iterable
+
+
 class TqdmStrategy(VerbosityStrategy):
     """Use tqdm for progress bars."""
 

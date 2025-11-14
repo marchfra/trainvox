@@ -1,37 +1,18 @@
 [project]
-name = "verbosity"
+name = "trainvox"
 version = "0.1.0"
-description = "Add your description here"
+description = "Provide strategies to display progress during machine learning training/evaluation loops."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
     { name = "Francesco Marchisotti", email = "francesco.marchisotti@gmail.com" },
 ]
 requires-python = ">=3.12"
-dependencies = [
-    "numpy<2; sys_platform == 'darwin' and platform_machine != 'arm64'",
-    "requests>=2.32.5",
-    "torch==2.2.2; sys_platform == 'darwin' and platform_machine != 'arm64'",
-    "torch; sys_platform != 'darwin' or platform_machine == 'arm64'",
-    "tqdm>=4.67.1",
-]
+dependencies = ["requests>=2.32.5", "tqdm>=4.67.1"]
+
+[dependency-groups]
+dev = ["python-dotenv>=1.2.1"]
 
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]
 build-backend = "uv_build"
-
-[tool.ruff]
-extend = "~/.config/ruff/ruff.toml"
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = [
-    "S101",    # Ignore use of assert in tests
-    "ARG",     # flake8-unused-arguments
-    "FBT",     # flake8-boolean-trap
-    "PLR2004", # magic-value-comparison
-    "S311",    # suspiciuous-non-cryptographic-random-usage
-    "SLF001",  # Private member accessed
-]
-
-[dependency-groups]
-dev = ["python-dotenv>=1.2.1"]

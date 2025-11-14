@@ -3,7 +3,9 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import TextIO
 
+import requests
 from tqdm.auto import tqdm
+from tqdm.contrib.telegram import tqdm_telegram
 
 
 class VerbosityStrategy(ABC):
@@ -122,13 +124,13 @@ class TqdmStrategy(VerbosityStrategy):
 
     def on_epoch_end(self, epoch: int, avg_loss: float | None = None) -> None:  # noqa: ARG002
         if self.epoch_bar is not None and avg_loss is not None:
-            self.epoch_bar.set_postfix({"avg_loss": f"{avg_loss:.4f}"})
+            self.epoch_bar.set_postfix({"avg_loss": f"{avg_loss:.4g}"})
         if self.batch_bar is not None:
             self.batch_bar.close()
 
     def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:  # noqa: ARG002
         if self.batch_bar is not None and loss is not None:
-            self.batch_bar.set_postfix({"loss": f"{loss:.4f}"})
+            self.batch_bar.set_postfix({"loss": f"{loss:.4g}"})
 
     def wrap_epoch_iterator[T](
         self,
@@ -144,6 +146,75 @@ class TqdmStrategy(VerbosityStrategy):
         desc: str = "  Batches",
     ) -> Iterable[T]:
         self.batch_bar = tqdm(iterable, desc=desc, leave=False, unit="batch")
+        return self.batch_bar
+
+
+def send_telegram_message(msg: str, token: str, chat_id: str) -> None:
+    """Send a message on Telegram.
+
+    The message can be formatted using Markdown.
+    """
+    payload = {
+        "chat_id": chat_id,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True,
+        "text": msg,
+    }
+
+    r = requests.get(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        params=payload,
+        timeout=10,
+    )
+    r.raise_for_status()
+
+
+class TelegramTqdmStrategy(TqdmStrategy):
+    """Use tqdm for progress bars."""
+
+    def __init__(self, token: str, chat_id: str) -> None:
+        super().__init__()
+
+        self.token = token
+        self.chat_id = chat_id
+
+    def on_train_begin(self, num_epochs: int, msg: str = "Starting training") -> None:
+        super().on_train_begin(num_epochs)
+
+        send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
+
+    def on_train_end(self, msg: str = "Training completed!") -> None:
+        super().on_train_end()
+
+        send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
+
+    def wrap_epoch_iterator[T](
+        self,
+        iterable: Iterable[T],
+        desc: str = "Training",
+    ) -> Iterable[T]:
+        self.epoch_bar = tqdm_telegram(
+            iterable,
+            desc=desc,
+            unit="epoch",
+            token=self.token,
+            chat_id=self.chat_id,
+        )
+        return self.epoch_bar
+
+    def wrap_batch_iterator[T](
+        self,
+        iterable: Iterable[T],
+        desc: str = "  Batches",
+    ) -> Iterable[T]:
+        self.batch_bar = tqdm_telegram(
+            iterable,
+            desc=desc,
+            leave=False,
+            unit="batch",
+            token=self.token,
+            chat_id=self.chat_id,
+        )
         return self.batch_bar
 
 
@@ -184,14 +255,14 @@ class FileLoggingStrategy(VerbosityStrategy):
         else:
             self._log(
                 f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed"
-                f" - Average Loss: {avg_loss:.4f}",
+                f" - Average Loss: {avg_loss:.4g}",
             )
 
     def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
         if loss is None:
             self._log(f"  Batch {batch_idx + 1}")
         else:
-            self._log(f"  Batch {batch_idx + 1}, Loss: {loss:.4f}")
+            self._log(f"  Batch {batch_idx + 1}, Loss: {loss:.4g}")
 
     def wrap_epoch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
         return iterable

@@ -7,8 +7,13 @@ license = { file = "LICENSE" }
 authors = [
     { name = "Francesco Marchisotti", email = "francesco.marchisotti@gmail.com" },
 ]
-requires-python = ">=3.11"
-dependencies = []
+requires-python = ">=3.12"
+dependencies = [
+    "numpy<2; sys_platform == 'darwin' and platform_machine != 'arm64'",
+    "torch==2.2.2; sys_platform == 'darwin' and platform_machine != 'arm64'",
+    "torch; sys_platform != 'darwin' or platform_machine == 'arm64'",
+    "tqdm>=4.67.1",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]
@@ -23,7 +28,7 @@ testpaths = ["tests"]
 
 [tool.pyright]
 exclude = [".venv"]
-pythonVersion = "3.11"
+pythonVersion = "3.12"
 venvPath = "."
 venv = ".venv"
 

@@ -27,7 +27,12 @@ class VerbosityStrategy(ABC):
         """Call at the beginning of each epoch."""
 
     @abstractmethod
-    def on_epoch_end(self, epoch: int, avg_loss: float | None = None) -> None:
+    def on_epoch_end(
+        self,
+        epoch: int,
+        avg_loss: float | None = None,
+        val_loss: float | None = None,
+    ) -> None:
         """Call at the end of each epoch."""
 
     @abstractmethod
@@ -55,7 +60,12 @@ class SilentStrategy(VerbosityStrategy):
     def on_epoch_begin(self, epoch: int) -> None:
         pass
 
-    def on_epoch_end(self, epoch: int, avg_loss: float | None = None) -> None:
+    def on_epoch_end(
+        self,
+        epoch: int,
+        avg_loss: float | None = None,
+        val_loss: float | None = None,
+    ) -> None:
         pass
 
     def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
@@ -86,16 +96,19 @@ class PrintStrategy(VerbosityStrategy):
         else:
             print(f"  Batch {batch_idx + 1}, Loss: {loss:.4g}")
 
-    def on_epoch_end(self, epoch: int, avg_loss: float | None = None) -> None:
-        if avg_loss is None:
-            print(
-                f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed",
-            )
-        else:
-            print(
-                f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed"
-                f" - Average Loss: {avg_loss:.4g}",
-            )
+    def on_epoch_end(
+        self,
+        epoch: int,
+        avg_loss: float | None = None,
+        val_loss: float | None = None,
+    ) -> None:
+        msg = f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed"
+        if avg_loss is not None:
+            msg += f" - Average Loss: {avg_loss:.4g}"
+        if val_loss is not None:
+            msg += f" - Validation Loss: {val_loss:.4g}"
+
+        print(msg)
 
     def on_train_end(self) -> None:
         print("Training completed!")
@@ -124,9 +137,18 @@ class TqdmStrategy(VerbosityStrategy):
     def on_epoch_begin(self, epoch: int) -> None:
         pass
 
-    def on_epoch_end(self, epoch: int, avg_loss: float | None = None) -> None:  # noqa: ARG002
-        if self.epoch_bar is not None and avg_loss is not None:
-            self.epoch_bar.set_postfix({"avg_loss": f"{avg_loss:.4g}"})
+    def on_epoch_end(
+        self,
+        epoch: int,  # noqa: ARG002
+        avg_loss: float | None = None,
+        val_loss: float | None = None,
+    ) -> None:
+        if self.epoch_bar is not None:
+            if avg_loss is not None:
+                self.epoch_bar.set_postfix({"avg_loss": f"{avg_loss:.4g}"})
+            if val_loss is not None:
+                self.epoch_bar.set_postfix({"val_loss": f"{val_loss:.4g}"})
+
         if self.batch_bar is not None:
             self.batch_bar.close()
 
@@ -249,16 +271,19 @@ class FileLoggingStrategy(VerbosityStrategy):
     def on_epoch_begin(self, epoch: int) -> None:
         self._log(f"\nEpoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs}")
 
-    def on_epoch_end(self, epoch: int, avg_loss: float | None = None) -> None:
-        if avg_loss is None:
-            self._log(
-                f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed",
-            )
-        else:
-            self._log(
-                f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed"
-                f" - Average Loss: {avg_loss:.4g}",
-            )
+    def on_epoch_end(
+        self,
+        epoch: int,
+        avg_loss: float | None = None,
+        val_loss: float | None = None,
+    ) -> None:
+        msg = f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs} completed"
+        if avg_loss is not None:
+            msg += f" - Average Loss: {avg_loss:.4g}"
+        if val_loss is not None:
+            msg += f" - Validation Loss: {val_loss:.4g}"
+
+        self._log(msg)
 
     def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
         if loss is None:
@@ -291,9 +316,14 @@ class CompositeStrategy(VerbosityStrategy):
         for strategy in self.strategies:
             strategy.on_epoch_begin(epoch)
 
-    def on_epoch_end(self, epoch: int, avg_loss: float | None = None) -> None:
+    def on_epoch_end(
+        self,
+        epoch: int,
+        avg_loss: float | None = None,
+        val_loss: float | None = None,
+    ) -> None:
         for strategy in self.strategies:
-            strategy.on_epoch_end(epoch, avg_loss)
+            strategy.on_epoch_end(epoch, avg_loss, val_loss)
 
     def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
         for strategy in self.strategies:

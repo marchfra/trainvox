@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
-from typing import TextIO
+from typing import TextIO, TypeVar
 
 import requests
 from tqdm.auto import tqdm
 from tqdm.contrib.telegram import tqdm_telegram
+
+T = TypeVar("T")
 
 
 class VerbosityStrategy(ABC):
@@ -33,11 +35,11 @@ class VerbosityStrategy(ABC):
         """Call after each batch."""
 
     @abstractmethod
-    def wrap_epoch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         """Wrap the epoch iterator (e.g., with tqdm)."""
 
     @abstractmethod
-    def wrap_batch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         """Wrap the batch iterator (e.g., with tqdm)."""
 
 
@@ -59,10 +61,10 @@ class SilentStrategy(VerbosityStrategy):
     def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
         pass
 
-    def wrap_epoch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         return iterable
 
-    def wrap_batch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         return iterable
 
 
@@ -98,10 +100,10 @@ class PrintStrategy(VerbosityStrategy):
     def on_train_end(self) -> None:
         print("Training completed!")
 
-    def wrap_epoch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         return iterable
 
-    def wrap_batch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         return iterable
 
 
@@ -132,7 +134,7 @@ class TqdmStrategy(VerbosityStrategy):
         if self.batch_bar is not None and loss is not None:
             self.batch_bar.set_postfix({"loss": f"{loss:.4g}"})
 
-    def wrap_epoch_iterator[T](
+    def wrap_epoch_iterator(
         self,
         iterable: Iterable[T],
         desc: str = "Training",
@@ -140,7 +142,7 @@ class TqdmStrategy(VerbosityStrategy):
         self.epoch_bar = tqdm(iterable, desc=desc, unit="epoch")
         return self.epoch_bar
 
-    def wrap_batch_iterator[T](
+    def wrap_batch_iterator(
         self,
         iterable: Iterable[T],
         desc: str = "  Batches",
@@ -188,7 +190,7 @@ class TelegramTqdmStrategy(TqdmStrategy):
 
         send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
 
-    def wrap_epoch_iterator[T](
+    def wrap_epoch_iterator(
         self,
         iterable: Iterable[T],
         desc: str = "Training",
@@ -202,7 +204,7 @@ class TelegramTqdmStrategy(TqdmStrategy):
         )
         return self.epoch_bar
 
-    def wrap_batch_iterator[T](
+    def wrap_batch_iterator(
         self,
         iterable: Iterable[T],
         desc: str = "  Batches",
@@ -264,10 +266,10 @@ class FileLoggingStrategy(VerbosityStrategy):
         else:
             self._log(f"  Batch {batch_idx + 1}, Loss: {loss:.4g}")
 
-    def wrap_epoch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         return iterable
 
-    def wrap_batch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         return iterable
 
 
@@ -297,13 +299,13 @@ class CompositeStrategy(VerbosityStrategy):
         for strategy in self.strategies:
             strategy.on_batch_end(batch_idx, loss)
 
-    def wrap_epoch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         # Use the first strategy that actually wraps
         for strategy in self.strategies:
             iterable = strategy.wrap_epoch_iterator(iterable)
         return iterable
 
-    def wrap_batch_iterator[T](self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         for strategy in self.strategies:
             iterable = strategy.wrap_batch_iterator(iterable)
         return iterable

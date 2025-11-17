@@ -36,7 +36,11 @@ class VerbosityStrategy(ABC):
         """Call at the end of each epoch."""
 
     @abstractmethod
-    def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
+    def on_batch_end(
+        self,
+        batch_idx: int | None = None,
+        loss: float | None = None,
+    ) -> None:
         """Call after each batch."""
 
     @abstractmethod
@@ -68,7 +72,11 @@ class SilentStrategy(VerbosityStrategy):
     ) -> None:
         pass
 
-    def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
+    def on_batch_end(
+        self,
+        batch_idx: int | None = None,
+        loss: float | None = None,
+    ) -> None:
         pass
 
     def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
@@ -90,11 +98,20 @@ class PrintStrategy(VerbosityStrategy):
     def on_epoch_begin(self, epoch: int) -> None:
         print(f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs}")
 
-    def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
-        if loss is None:
-            print(f"  Batch {batch_idx + 1}")
-        else:
-            print(f"  Batch {batch_idx + 1}, Loss: {loss:.4g}")
+    def on_batch_end(
+        self,
+        batch_idx: int | None = None,
+        loss: float | None = None,
+    ) -> None:
+        msg = "  "
+        if batch_idx is not None:
+            msg += f"Batch {batch_idx + 1}"
+        if loss is not None:
+            if batch_idx is not None:
+                msg += ", "
+            msg += f"Loss: {loss:.4g}"
+
+        print(msg)
 
     def on_epoch_end(
         self,
@@ -154,7 +171,11 @@ class TqdmStrategy(VerbosityStrategy):
         if self.batch_bar is not None:
             self.batch_bar.close()
 
-    def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:  # noqa: ARG002
+    def on_batch_end(
+        self,
+        batch_idx: int | None = None,  # noqa: ARG002
+        loss: float | None = None,
+    ) -> None:
         if self.batch_bar is not None and loss is not None:
             self.batch_bar.set_postfix({"loss": f"{loss:.4g}"})
 
@@ -169,9 +190,9 @@ class TqdmStrategy(VerbosityStrategy):
     def wrap_batch_iterator(
         self,
         iterable: Iterable[T],
-        desc: str = "  Batches",
+        desc: str = "Batches",
     ) -> Iterable[T]:
-        self.batch_bar = tqdm(iterable, desc=desc, leave=False, unit="batch")
+        self.batch_bar = tqdm(iterable, desc="  " + desc, leave=False, unit="batch")
         return self.batch_bar
 
 
@@ -231,11 +252,11 @@ class TelegramTqdmStrategy(TqdmStrategy):
     def wrap_batch_iterator(
         self,
         iterable: Iterable[T],
-        desc: str = "  Batches",
+        desc: str = "Batches",
     ) -> Iterable[T]:
         self.batch_bar = tqdm_telegram(
             iterable,
-            desc=desc,
+            desc="  " + desc,
             leave=False,
             unit="batch",
             token=self.token,
@@ -287,11 +308,20 @@ class FileLoggingStrategy(VerbosityStrategy):
 
         self._log(msg)
 
-    def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
-        if loss is None:
-            self._log(f"  Batch {batch_idx + 1}")
-        else:
-            self._log(f"  Batch {batch_idx + 1}, Loss: {loss:.4g}")
+    def on_batch_end(
+        self,
+        batch_idx: int | None = None,
+        loss: float | None = None,
+    ) -> None:
+        msg = "  "
+        if batch_idx is not None:
+            msg += f"Batch {batch_idx + 1}"
+        if loss is not None:
+            if batch_idx is not None:
+                msg += ", "
+            msg += f"Loss: {loss:.4g}"
+
+        self._log(msg)
 
     def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
         return iterable
@@ -327,7 +357,11 @@ class CompositeStrategy(VerbosityStrategy):
         for strategy in self.strategies:
             strategy.on_epoch_end(epoch, train_loss, val_loss)
 
-    def on_batch_end(self, batch_idx: int, loss: float | None = None) -> None:
+    def on_batch_end(
+        self,
+        batch_idx: int | None = None,
+        loss: float | None = None,
+    ) -> None:
         for strategy in self.strategies:
             strategy.on_batch_end(batch_idx, loss)
 

@@ -184,16 +184,18 @@ class TqdmStrategy(VerbosityStrategy):
         self,
         iterable: Iterable[T],
         desc: str = "Training",
+        unit: str = "epoch",
     ) -> Iterable[T]:
-        self.epoch_bar = tqdm(iterable, desc=desc, unit="epoch")
+        self.epoch_bar = tqdm(iterable, desc=desc, unit=unit)
         return self.epoch_bar
 
     def wrap_batch_iterator(
         self,
         iterable: Iterable[T],
         desc: str = "Batches",
+        unit: str = "batch",
     ) -> Iterable[T]:
-        self.batch_bar = tqdm(iterable, desc="  " + desc, leave=False, unit="batch")
+        self.batch_bar = tqdm(iterable, desc="  " + desc, leave=False, unit=unit)
         return self.batch_bar
 
 
@@ -220,11 +222,12 @@ class TelegramTqdmStrategy(TqdmStrategy):
         self,
         iterable: Iterable[T],
         desc: str = "Training",
+        unit: str = "epoch",
     ) -> Iterable[T]:
         self.epoch_bar = tqdm_telegram(
             iterable,
             desc=desc,
-            unit="epoch",
+            unit=unit,
             token=self.token,
             chat_id=self.chat_id,
         )
@@ -234,12 +237,13 @@ class TelegramTqdmStrategy(TqdmStrategy):
         self,
         iterable: Iterable[T],
         desc: str = "Batches",
+        unit: str = "batch",
     ) -> Iterable[T]:
         self.batch_bar = tqdm_telegram(
             iterable,
             desc="  " + desc,
             leave=False,
-            unit="batch",
+            unit=unit,
             token=self.token,
             chat_id=self.chat_id,
         )

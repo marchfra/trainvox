@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from pathlib import Path
-from typing import TextIO, TypeVar
+from typing import TypeVar
 
 from tqdm.auto import tqdm
 from tqdm.contrib.telegram import tqdm_telegram
@@ -15,12 +14,12 @@ class VerbosityStrategy(ABC):
     """Abstract base class for verbosity strategies."""
 
     @abstractmethod
-    def on_train_begin(self, num_epochs: int) -> None:
+    def on_train_begin(self, num_epochs: int, msg: str) -> None:
         """Call when training starts."""
         self.num_epochs = num_epochs
 
     @abstractmethod
-    def on_train_end(self) -> None:
+    def on_train_end(self, msg: str) -> None:
         """Call when training ends."""
 
     @abstractmethod
@@ -45,21 +44,31 @@ class VerbosityStrategy(ABC):
         """Call after each batch."""
 
     @abstractmethod
-    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_epoch_iterator(
+        self,
+        iterable: Iterable[T],
+        desc: str,
+        unit: str,
+    ) -> Iterable[T]:
         """Wrap the epoch iterator (e.g., with tqdm)."""
 
     @abstractmethod
-    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(
+        self,
+        iterable: Iterable[T],
+        desc: str,
+        unit: str,
+    ) -> Iterable[T]:
         """Wrap the batch iterator (e.g., with tqdm)."""
 
 
 class SilentStrategy(VerbosityStrategy):
     """No output during training."""
 
-    def on_train_begin(self, num_epochs: int) -> None:
-        super().on_train_begin(num_epochs)
+    def on_train_begin(self, num_epochs: int, msg: str) -> None:
+        super().on_train_begin(num_epochs, msg)
 
-    def on_train_end(self) -> None:
+    def on_train_end(self, msg: str) -> None:
         pass
 
     def on_epoch_begin(self, epoch: int) -> None:
@@ -80,21 +89,31 @@ class SilentStrategy(VerbosityStrategy):
     ) -> None:
         pass
 
-    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_epoch_iterator(
+        self,
+        iterable: Iterable[T],
+        desc: str = "",  # noqa: ARG002
+        unit: str = "",  # noqa: ARG002
+    ) -> Iterable[T]:
         return iterable
 
-    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(
+        self,
+        iterable: Iterable[T],
+        desc: str = "",  # noqa: ARG002
+        unit: str = "",  # noqa: ARG002
+    ) -> Iterable[T]:
         return iterable
 
 
 class PrintStrategy(VerbosityStrategy):
     """Use print statements for progress."""
 
-    def on_train_begin(self, num_epochs: int) -> None:
-        super().on_train_begin(num_epochs)
+    def on_train_begin(self, num_epochs: int, msg: str = "Starting training") -> None:
+        super().on_train_begin(num_epochs, msg=msg)
         self.max_epoch_len = len(str(num_epochs))
 
-        print(f"Starting training for {self.num_epochs} epochs...")
+        print(f"{msg} for {self.num_epochs} epochs...")
 
     def on_epoch_begin(self, epoch: int) -> None:
         print(f"Epoch {epoch + 1:{self.max_epoch_len}d}/{self.num_epochs}")
@@ -128,13 +147,23 @@ class PrintStrategy(VerbosityStrategy):
 
         print(msg)
 
-    def on_train_end(self) -> None:
-        print("Training completed!")
+    def on_train_end(self, msg: str = "Training completed!") -> None:
+        print(msg)
 
-    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_epoch_iterator(
+        self,
+        iterable: Iterable[T],
+        desc: str = "",  # noqa: ARG002
+        unit: str = "",  # noqa: ARG002
+    ) -> Iterable[T]:
         return iterable
 
-    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(
+        self,
+        iterable: Iterable[T],
+        desc: str = "",  # noqa: ARG002
+        unit: str = "",  # noqa: ARG002
+    ) -> Iterable[T]:
         return iterable
 
 
@@ -145,10 +174,10 @@ class TqdmStrategy(VerbosityStrategy):
         self.epoch_bar = None
         self.batch_bar = None
 
-    def on_train_begin(self, num_epochs: int) -> None:
-        super().on_train_begin(num_epochs)
+    def on_train_begin(self, num_epochs: int, msg: str) -> None:
+        super().on_train_begin(num_epochs, msg)
 
-    def on_train_end(self) -> None:
+    def on_train_end(self, msg: str) -> None:  # noqa: ARG002
         if self.epoch_bar:
             self.epoch_bar.close()
 
@@ -208,15 +237,30 @@ class TelegramTqdmStrategy(TqdmStrategy):
         self.token = token
         self.chat_id = chat_id
 
-    def on_train_begin(self, num_epochs: int, msg: str = "Starting training") -> None:
-        super().on_train_begin(num_epochs)
+    def on_train_begin(
+        self,
+        num_epochs: int,
+        msg: str = "Starting training",
+    ) -> None:
+        super().on_train_begin(num_epochs, msg)
 
-        send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
+        msg += f" for {num_epochs} epochs..."
 
-    def on_train_end(self, msg: str = "Training completed!") -> None:
-        super().on_train_end()
+        try:
+            send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
+        except RuntimeError as e:
+            print(f"Failed to send message: {e}")
 
-        send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
+    def on_train_end(
+        self,
+        msg: str = "Training completed!",
+    ) -> None:
+        super().on_train_end(msg)
+
+        try:
+            send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
+        except RuntimeError as e:
+            print(f"Failed to send message: {e}")
 
     def wrap_epoch_iterator(
         self,
@@ -256,13 +300,13 @@ class CompositeStrategy(VerbosityStrategy):
     def __init__(self, *strategies: VerbosityStrategy) -> None:
         self.strategies = strategies
 
-    def on_train_begin(self, num_epochs: int) -> None:
+    def on_train_begin(self, num_epochs: int, msg: str = "Starting training") -> None:
         for strategy in self.strategies:
-            strategy.on_train_begin(num_epochs)
+            strategy.on_train_begin(num_epochs, msg)
 
-    def on_train_end(self) -> None:
+    def on_train_end(self, msg: str) -> None:
         for strategy in self.strategies:
-            strategy.on_train_end()
+            strategy.on_train_end(msg)
 
     def on_epoch_begin(self, epoch: int) -> None:
         for strategy in self.strategies:
@@ -285,13 +329,22 @@ class CompositeStrategy(VerbosityStrategy):
         for strategy in self.strategies:
             strategy.on_batch_end(batch_idx, loss)
 
-    def wrap_epoch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
-        # Use the first strategy that actually wraps
+    def wrap_epoch_iterator(
+        self,
+        iterable: Iterable[T],
+        desc: str = "Training",
+        unit: str = "epoch",
+    ) -> Iterable[T]:
         for strategy in self.strategies:
-            iterable = strategy.wrap_epoch_iterator(iterable)
+            iterable = strategy.wrap_epoch_iterator(iterable, desc=desc, unit=unit)
         return iterable
 
-    def wrap_batch_iterator(self, iterable: Iterable[T]) -> Iterable[T]:
+    def wrap_batch_iterator(
+        self,
+        iterable: Iterable[T],
+        desc: str = "Batches",
+        unit: str = "batch",
+    ) -> Iterable[T]:
         for strategy in self.strategies:
-            iterable = strategy.wrap_batch_iterator(iterable)
+            iterable = strategy.wrap_batch_iterator(iterable, desc=desc, unit=unit)
         return iterable

@@ -1,6 +1,6 @@
 [project]
 name = "trainvox"
-version = "0.6.0"
+version = "0.7.0"
 description = "Provide strategies to display progress during machine learning training/evaluation loops."
 readme = "README.md"
 license = { file = "LICENSE" }

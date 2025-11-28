@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Sized
 from typing import TypeVar
 
 from tqdm.auto import tqdm
@@ -109,6 +109,15 @@ class SilentStrategy(VerbosityStrategy):
 class PrintStrategy(VerbosityStrategy):
     """Use print statements for progress."""
 
+    def __init__(self) -> None:
+        self.num_batches: int | None = None
+
+    @property
+    def max_batch_len(self) -> int:
+        if self.num_batches is not None:
+            return len(str(self.num_batches))
+        return -1
+
     def on_train_begin(self, num_epochs: int, msg: str = "Starting training") -> None:
         super().on_train_begin(num_epochs, msg=msg)
         self.max_epoch_len = len(str(num_epochs))
@@ -125,7 +134,10 @@ class PrintStrategy(VerbosityStrategy):
     ) -> None:
         msg = "  "
         if batch_idx is not None:
-            msg += f"Batch {batch_idx + 1}"
+            if self.num_batches is not None:
+                msg += f"Batch {batch_idx + 1:{self.max_batch_len}d}/{self.num_batches}"
+            else:
+                msg += f"Batch {batch_idx + 1}"
         if loss is not None:
             if batch_idx is not None:
                 msg += ", "
@@ -164,6 +176,8 @@ class PrintStrategy(VerbosityStrategy):
         desc: str = "",  # noqa: ARG002
         unit: str = "",  # noqa: ARG002
     ) -> Iterable[T]:
+        if isinstance(iterable, Sized):
+            self.num_batches = len(iterable)
         return iterable
 
 
@@ -244,7 +258,7 @@ class TelegramTqdmStrategy(TqdmStrategy):
     ) -> None:
         super().on_train_begin(num_epochs, msg)
 
-        msg += f" for {num_epochs} epochs..."
+        msg += f" for {num_epochs} epochs"
 
         try:
             send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
@@ -304,7 +318,7 @@ class CompositeStrategy(VerbosityStrategy):
         for strategy in self.strategies:
             strategy.on_train_begin(num_epochs, msg)
 
-    def on_train_end(self, msg: str) -> None:
+    def on_train_end(self, msg: str = "Training completed!") -> None:
         for strategy in self.strategies:
             strategy.on_train_end(msg)
 

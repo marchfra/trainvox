@@ -21,7 +21,6 @@ def send_telegram_message(msg: str, token: str, chat_id: int | str) -> None:
     payload = {
         "chat_id": chat_id,
         "parse_mode": "MarkdownV2",
-        "disable_web_page_preview": True,
         "text": msg,
     }
 

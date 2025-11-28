@@ -3,8 +3,8 @@
 This library provides useful strategies to display progress during machine
 learning training/evaluation loops.
 
-These strategies are implemented using a common interface (as the strategy pattern
-dictates), but vary in how they display the progress.
+These strategies are implemented using a common interface (as the strategy
+pattern dictates), but vary in how they display the progress.
 
 ## Installation
 
@@ -17,8 +17,8 @@ pip install trainvox@git+https://github.com/marchfra/trainvox.git
 ## Usage
 
 To use the library in your training loop, simply import your chosen strategy,
-instantiate the relative object, and call the relevant method at the appropriate
-time.
+instantiate the relative object, and call the relevant method at the
+appropriate time.
 
 Below is an example code:
 

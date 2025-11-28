@@ -1,7 +1,6 @@
 from ._version import __version__
 from .strategies import (
     CompositeStrategy,
-    FileLoggingStrategy,
     PrintStrategy,
     SilentStrategy,
     TelegramTqdmStrategy,
@@ -10,7 +9,6 @@ from .strategies import (
 
 __all__ = [
     "CompositeStrategy",
-    "FileLoggingStrategy",
     "PrintStrategy",
     "SilentStrategy",
     "TelegramTqdmStrategy",

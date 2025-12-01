@@ -312,7 +312,7 @@ class CompositeStrategy(VerbosityStrategy):
     """Combine multiple strategies."""
 
     def __init__(self, *strategies: VerbosityStrategy) -> None:
-        self.strategies = strategies
+        self.strategies = list(strategies)
 
     def on_train_begin(self, num_epochs: int, msg: str = "Starting training") -> None:
         for strategy in self.strategies:
@@ -362,3 +362,6 @@ class CompositeStrategy(VerbosityStrategy):
         for strategy in self.strategies:
             iterable = strategy.wrap_batch_iterator(iterable, desc=desc, unit=unit)
         return iterable
+
+    def add_strategy(self, strategy: VerbosityStrategy) -> None:
+        self.strategies.append(strategy)

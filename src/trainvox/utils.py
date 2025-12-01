@@ -1,11 +1,23 @@
+import re
 from pathlib import Path
 
 import requests
 from requests.exceptions import HTTPError, RequestException
 
 
+def _has_unescaped_markdown_v2_chars(s: str) -> bool:
+    """Check for unescaped MarkdownV2 special characters in a string."""
+    # List of special characters in MarkdownV2
+    special_chars = r"._*[]()~`>#+-=|{}!"
+
+    # Regex: match any special char not preceded by a backslash
+    pattern = r"(?<!\\)[" + re.escape(special_chars) + r"]"
+
+    return bool(re.search(pattern, s))
+
+
 def send_telegram_message(msg: str, token: str, chat_id: int | str) -> None:
-    """Send a message on Telegram.
+    r"""Send a message on Telegram.
 
     Args:
         msg: The message to send. Can be formatted using MarkdownV2
@@ -14,8 +26,22 @@ def send_telegram_message(msg: str, token: str, chat_id: int | str) -> None:
 
     Raises:
         RuntimeError: If a network error, HTTP error, or Telegram API error occurs
+        ValueError: If the message contains unescaped MarkdownV2 special characters
+
+    Warning:
+        The following characters must be escaped with a backslash:
+        ```
+            .  _  *  [  ]  (  )  ~  `  >  +  -  =  |  {  }  !  #
+
+        For example: "Hello\_World\!" is valid.
+        ```
 
     """
+    if _has_unescaped_markdown_v2_chars(msg):
+        raise ValueError(
+            f"Message contains unescaped MarkdownV2 special characters: '{msg}'",
+        )
+
     url = f"https://api.telegram.org/bot{token}/sendMessage"
 
     payload = {
@@ -48,7 +74,7 @@ def send_telegram_photo(
     token: str,
     chat_id: int | str,
 ) -> None:
-    """Send a local photo on Telegram.
+    r"""Send a local photo on Telegram.
 
     Args:
         photo_path: The path to an image file on disk
@@ -59,6 +85,15 @@ def send_telegram_photo(
     Raises:
         FileNotFoundError: If the supplied photo doesn't exist
         RuntimeError: If a network error, HTTP error, or Telegram API error occurs
+        ValueError: If the caption contains unescaped MarkdownV2 special characters
+
+    Warning:
+        The following characters must be escaped with a backslash:
+        ```
+            .  _  *  [  ]  (  )  ~  `  >  +  -  =  |  {  }  !  #
+
+        For example: "Hello\_World\!" is valid.
+        ```
 
     """
     url = f"https://api.telegram.org/bot{token}/sendPhoto"
@@ -71,6 +106,11 @@ def send_telegram_photo(
     }
     if caption:
         payload["caption"] = caption
+        if _has_unescaped_markdown_v2_chars(caption):
+            raise ValueError(
+                f"Caption contains unescaped MarkdownV2 special characters: "
+                f"'{caption}'",
+            )
 
     try:
         with photo_path.open("rb") as img:

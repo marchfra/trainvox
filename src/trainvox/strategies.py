@@ -262,7 +262,7 @@ class TelegramTqdmStrategy(TqdmStrategy):
 
         try:
             send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
-        except RuntimeError as e:
+        except (ValueError, RuntimeError) as e:
             print(f"Failed to send message: {e}")
 
     def on_train_end(
@@ -273,7 +273,7 @@ class TelegramTqdmStrategy(TqdmStrategy):
 
         try:
             send_telegram_message(msg, token=self.token, chat_id=self.chat_id)
-        except RuntimeError as e:
+        except (ValueError, RuntimeError) as e:
             print(f"Failed to send message: {e}")
 
     def wrap_epoch_iterator(

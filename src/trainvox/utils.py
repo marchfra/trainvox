@@ -78,6 +78,7 @@ def send_telegram_photo(
 
     payload = {"chat_id": chat_id}
     if caption:
+        caption = _escape_markdown_v2(caption)
         payload["caption"] = caption
         payload["parse_mode"] = "MarkdownV2"
 

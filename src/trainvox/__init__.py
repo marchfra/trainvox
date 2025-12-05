@@ -6,7 +6,12 @@ from .strategies import (
     TelegramTqdmStrategy,
     TqdmStrategy,
 )
-from .utils import send_telegram_message, send_telegram_photo
+from .utils import (
+    delete_telegram_message,
+    edit_telegram_media,
+    send_telegram_message,
+    send_telegram_photo,
+)
 
 __all__ = [
     "CompositeStrategy",
@@ -15,6 +20,8 @@ __all__ = [
     "TelegramTqdmStrategy",
     "TqdmStrategy",
     "__version__",
+    "delete_telegram_message",
+    "edit_telegram_media",
     "send_telegram_message",
     "send_telegram_photo",
 ]

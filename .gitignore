@@ -210,4 +210,4 @@ pyrightconfig.json
 
 # used to test the code
 main.py
-image.png
+*image.png

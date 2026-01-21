@@ -178,7 +178,7 @@ def edit_telegram_media(
     token: str,
     chat_id: int | str,
     caption: str | None = None,
-) -> None:
+) -> int | None:
     r"""Edit the media of an existing Telegram message.
 
     Args:
@@ -187,6 +187,9 @@ def edit_telegram_media(
         token: Telegram bot token
         chat_id: Identifier of the chat where the message exists
         caption: New caption for the image, formatted in MarkdownV2
+
+    Returns:
+        The message ID.
 
     Raises:
         FileNotFoundError: If the supplied photo doesn't exist
@@ -236,3 +239,8 @@ def edit_telegram_media(
     if not data.get("ok", False):
         msg = f"Telegram API error: {data}"
         raise RuntimeError(msg)
+
+    result: dict[str, Any] | None = data.get("result", None)
+    if result is not None:
+        return result.get("message_id", None)
+    return None

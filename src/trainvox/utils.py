@@ -9,7 +9,7 @@ from requests.exceptions import HTTPError, RequestException
 
 def _escape_markdown_v2(text: str) -> str:
     """Escape all special MarkdownV2 characters in the text."""
-    special_chars = r"._*[]()~`>#+-=|{}!"
+    special_chars = r".#-{}!"
 
     return re.sub(f"([{re.escape(special_chars)}])", r"\\\1", text)
 
@@ -46,15 +46,18 @@ def send_telegram_message(msg: str, token: str, chat_id: int | str) -> int | Non
         response.raise_for_status()
     except (RequestException, HTTPError) as e:
         # Networking issues, timeouts, DNS errors, etc.
-        raise RuntimeError(f"Network error while sending message: {e}") from e
+        msg = f"Network error while sending message: {e}"
+        raise RuntimeError(msg) from e
     except Exception as e:
         # Any other unexpected error
-        raise RuntimeError(f"Unexpected error while sending message: {e}") from e
+        msg = f"Unexpected error while sending message: {e}"
+        raise RuntimeError(msg) from e
 
     # Telegram may return 200 but still include an error in JSON
     data = response.json()
     if not data.get("ok", False):
-        raise RuntimeError(f"Telegram API error: {data}")
+        msg = f"Telegram API error: {data}"
+        raise RuntimeError(msg)
 
     result: dict[str, Any] | None = data.get("result", None)
     if result is not None:
@@ -102,17 +105,21 @@ def send_telegram_photo(
         # Raise for 4xx/5xx
         response.raise_for_status()
     except FileNotFoundError as e:
-        raise FileNotFoundError(f"Photo file not found: '{photo_path}'") from e
+        msg = f"Photo file not found: '{photo_path}'"
+        raise FileNotFoundError(msg) from e
     except (RequestException, HTTPError) as e:
         # Networking issues, timeouts, connection errors, etc
-        raise RuntimeError(f"Network error while sending photo: {e}") from e
+        msg = f"Network error while sending photo: {e}"
+        raise RuntimeError(msg) from e
     except Exception as e:
-        raise RuntimeError(f"Unexpected error while sending photo: {e}") from e
+        msg = f"Unexpected error while sending photo: {e}"
+        raise RuntimeError(msg) from e
 
     # Telegram may return 200 but still include an error in JSON
     data = response.json()
     if not data.get("ok", False):
-        raise RuntimeError(f"Telegram API error: {data}")
+        msg = f"Telegram API error: {data}"
+        raise RuntimeError(msg)
 
     result: dict[str, Any] | None = data.get("result", None)
     if result is not None:
@@ -149,15 +156,18 @@ def delete_telegram_message(message_id: int, token: str, chat_id: int | str) -> 
         response.raise_for_status()
     except (RequestException, HTTPError) as e:
         # Networking issues, timeouts, DNS errors, etc.
-        raise RuntimeError(f"Network error while deleting messages: {e}") from e
+        msg = f"Network error while deleting messages: {e}"
+        raise RuntimeError(msg) from e
     except Exception as e:
         # Any other unexpected error
-        raise RuntimeError(f"Unexpected error while deleting messages: {e}") from e
+        msg = f"Unexpected error while deleting messages: {e}"
+        raise RuntimeError(msg) from e
 
     # Telegram may return 200 but still include an error in JSON
     data = response.json()
     if not data.get("ok", False):
-        raise RuntimeError(f"Telegram API error: {data}")
+        msg = f"Telegram API error: {data}"
+        raise RuntimeError(msg)
 
     return data.get("result", False)
 
@@ -213,12 +223,16 @@ def edit_telegram_media(
         response.raise_for_status()
 
     except FileNotFoundError as e:
-        raise FileNotFoundError(f"Photo file not found: '{photo_path}'") from e
+        msg = f"Photo file not found: '{photo_path}'"
+        raise FileNotFoundError(msg) from e
     except (RequestException, HTTPError) as e:
-        raise RuntimeError(f"Network error while editing message media: {e}") from e
+        msg = f"Network error while editing message media: {e}"
+        raise RuntimeError(msg) from e
     except Exception as e:
-        raise RuntimeError(f"Unexpected error while editing message media: {e}") from e
+        msg = f"Unexpected error while editing message media: {e}"
+        raise RuntimeError(msg) from e
 
     data = response.json()
     if not data.get("ok", False):
-        raise RuntimeError(f"Telegram API error: {data}")
+        msg = f"Telegram API error: {data}"
+        raise RuntimeError(msg)

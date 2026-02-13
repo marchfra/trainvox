@@ -19,7 +19,7 @@ class VerbosityStrategy(ABC):
         self.num_epochs = num_epochs
 
     @abstractmethod
-    def on_train_end(self, msg: str) -> None:
+    def on_train_end(self, msg: str = "Training completed!") -> None:
         """Call when training ends."""
 
     @abstractmethod
@@ -68,7 +68,7 @@ class SilentStrategy(VerbosityStrategy):
     def on_train_begin(self, num_epochs: int, msg: str) -> None:
         super().on_train_begin(num_epochs, msg)
 
-    def on_train_end(self, msg: str) -> None:
+    def on_train_end(self, msg: str = "Training completed!") -> None:
         pass
 
     def on_epoch_begin(self, epoch: int) -> None:
@@ -118,7 +118,7 @@ class PrintStrategy(VerbosityStrategy):
             return len(str(self.num_batches))
         return -1
 
-    def on_train_begin(self, num_epochs: int, msg: str = "Starting training") -> None:
+    def on_train_begin(self, num_epochs: int, msg: str) -> None:
         super().on_train_begin(num_epochs, msg=msg)
         self.max_epoch_len = len(str(num_epochs))
 
@@ -191,7 +191,7 @@ class TqdmStrategy(VerbosityStrategy):
     def on_train_begin(self, num_epochs: int, msg: str) -> None:
         super().on_train_begin(num_epochs, msg)
 
-    def on_train_end(self, msg: str) -> None:  # noqa: ARG002
+    def on_train_end(self, msg: str = "Training completed!") -> None:  # noqa: ARG002
         if self.epoch_bar:
             self.epoch_bar.close()
 
@@ -251,11 +251,7 @@ class TelegramTqdmStrategy(TqdmStrategy):
         self.token = token
         self.chat_id = chat_id
 
-    def on_train_begin(
-        self,
-        num_epochs: int,
-        msg: str = "Starting training",
-    ) -> None:
+    def on_train_begin(self, num_epochs: int, msg: str) -> None:
         super().on_train_begin(num_epochs, msg)
 
         msg += f" for {num_epochs} epochs"

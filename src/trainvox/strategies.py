@@ -310,7 +310,7 @@ class CompositeStrategy(VerbosityStrategy):
     def __init__(self, *strategies: VerbosityStrategy) -> None:
         self.strategies = list(strategies)
 
-    def on_train_begin(self, num_epochs: int, msg: str = "Starting training") -> None:
+    def on_train_begin(self, num_epochs: int, msg: str) -> None:
         for strategy in self.strategies:
             strategy.on_train_begin(num_epochs, msg)
 

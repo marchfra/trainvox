@@ -190,6 +190,7 @@ class TqdmStrategy(VerbosityStrategy):
 
     def on_train_begin(self, num_epochs: int, msg: str) -> None:
         super().on_train_begin(num_epochs, msg)
+        print(f"{msg} for {self.num_epochs} epochs...")
 
     def on_train_end(self, msg: str = "Training completed!") -> None:  # noqa: ARG002
         if self.epoch_bar:
